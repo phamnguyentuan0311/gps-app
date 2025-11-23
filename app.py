@@ -22,56 +22,50 @@ st.subheader("GPS Đang lấy vị trí thực từ thiết bị...")
 components.html(
     """
     <script>
-    // Chạy ngay khi trang load xong
-    window.addEventListener('load', () => {
+    function tryGetLocation(attempt = 1) {
         const statusDiv = document.getElementById('gps_status');
-        
-        if (!navigator.geolocation) {
-            statusDiv.innerHTML = "Trình duyệt của bạn không hỗ trợ GPS";
-            return;
-        }
-
-        statusDiv.innerHTML = "Đang yêu cầu quyền truy cập vị trí...";
+        statusDiv.innerHTML = `Đang lấy vị trí GPS (lần ${attempt})...`;
 
         navigator.geolocation.getCurrentPosition(
             (position) => {
-                const lat = position.coords.latitude;
-                const lon = position.coords.longitude;
-                
+                const lat = position.coords.latitude.toFixed(6);
+                const lon = position.coords.longitude.toFixed(6);
                 const url = new URL(window.location.href);
                 url.searchParams.set('lat', lat);
                 url.searchParams.set('lon', lon);
-                
-                statusDiv.innerHTML = "Đã lấy được vị trí! Đang tải lại trang...";
-                window.location.href = url.toString();
+                statusDiv.innerHTML = "Thành công! Đang tải lại...";
+                setTimeout(() => window.location.href = url.toString(), 500);
             },
             (error) => {
-                let msg = "Không thể lấy vị trí:<br>";
-                if (error.code === 1) {
-                    msg += "Bạn đã từ chối cấp quyền vị trí. Vui lòng <strong>cho phép</strong> trong cài đặt trình duyệt.";
-                } else if (error.code === 2) {
-                    msg += "GPS tạm thời không khả dụng.";
-                } else if (error.code === 3) {
-                    msg += "Hết thời gian chờ. Vui lòng thử lại.";
+                if (attempt < 3) {
+                    statusDiv.innerHTML = `Thử lại lần ${attempt + 1}... (vui lòng di chuyển ra chỗ thoáng hoặc bật dữ liệu di động)`;
+                    setTimeout(() => tryGetLocation(attempt + 1), 3000);
                 } else {
-                    msg += "Lỗi không xác định.";
+                    statusDiv.innerHTML = "Không lấy được GPS sau 3 lần thử. Hiển thị Hà Nội mặc định.";
                 }
-                statusDiv.innerHTML = msg;
             },
             {
-                enableHighAccuracy: true,   // ưu tiên GPS thật (rất quan trọng trên điện thoại)
-                timeout: 15000,             // chờ tối đa 15 giây
-                maximumAge: 0               // không dùng vị trí cũ
+                enableHighAccuracy: true,
+                timeout: 30000,      // tăng lên 30 giây
+                maximumAge: 60000    // chấp nhận vị trí cũ trong 1 phút
             }
         );
+    }
+
+    window.addEventListener('load', () => {
+        if (navigator.geolocation) {
+            tryGetLocation(1);
+        } else {
+            document.getElementById('gps_status').innerHTML = "Trình duyệt không hỗ trợ GPS";
+        }
     });
     </script>
 
-    <div id="gps_status" style="padding:15px; background:#331100; color:#ffaaaa; border-radius:8px; margin:15px 0; font-size:16px; text-align:center;">
+    <div id="gps_status" style="padding:18px; background:#331100; color:#ffaaaa; border-radius:10px; margin:20px 0; font-size:17px; text-align:center;">
         Đang khởi động GPS...
     </div>
     """,
-    height=120
+    height=140
 )
 
 # Đọc tọa độ từ URL (sau khi JS reload)
