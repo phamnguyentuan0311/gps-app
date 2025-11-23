@@ -22,50 +22,35 @@ st.subheader("GPS Đang lấy vị trí thực từ thiết bị...")
 components.html(
     """
     <script>
-    function tryGetLocation(attempt = 1) {
+    if (!window.location.search.includes('lat=')) {
         const statusDiv = document.getElementById('gps_status');
-        statusDiv.innerHTML = `Đang lấy vị trí GPS (lần ${attempt})...`;
+        statusDiv.innerHTML = "Đang lấy vị trí GPS (vui lòng chờ 5–30 giây)...";
 
         navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const lat = position.coords.latitude.toFixed(6);
-                const lon = position.coords.longitude.toFixed(6);
-                const url = new URL(window.location.href);
-                url.searchParams.set('lat', lat);
-                url.searchParams.set('lon', lon);
-                statusDiv.innerHTML = "Thành công! Đang tải lại...";
-                setTimeout(() => window.location.href = url.toString(), 500);
+            (pos) => {
+                const lat = pos.coords.latitude.toFixed(6);
+                const lon = pos.coords.longitude.toFixed(6);
+                statusDiv.innerHTML = "Thành công! Đang tải lại trang...";
+                const newUrl = `${window.location.pathname}?lat=${lat}&lon=${lon}`;
+                window.location.replace(newUrl);  // replace thay vì href → chắc chắn reload đúng
             },
-            (error) => {
-                if (attempt < 3) {
-                    statusDiv.innerHTML = `Thử lại lần ${attempt + 1}... (vui lòng di chuyển ra chỗ thoáng hoặc bật dữ liệu di động)`;
-                    setTimeout(() => tryGetLocation(attempt + 1), 3000);
-                } else {
-                    statusDiv.innerHTML = "Không lấy được GPS sau 3 lần thử. Hiển thị Hà Nội mặc định.";
-                }
+            (err) => {
+                statusDiv.innerHTML = "Không lấy được GPS (bạn đã chặn hoặc tín hiệu yếu). Dùng vị trí Hà Nội.";
             },
             {
                 enableHighAccuracy: true,
-                timeout: 30000,      // tăng lên 30 giây
-                maximumAge: 60000    // chấp nhận vị trí cũ trong 1 phút
+                timeout: 40000,    // 40 giây
+                maximumAge: 60000
             }
         );
     }
-
-    window.addEventListener('load', () => {
-        if (navigator.geolocation) {
-            tryGetLocation(1);
-        } else {
-            document.getElementById('gps_status').innerHTML = "Trình duyệt không hỗ trợ GPS";
-        }
-    });
     </script>
 
     <div id="gps_status" style="padding:18px; background:#331100; color:#ffaaaa; border-radius:10px; margin:20px 0; font-size:17px; text-align:center;">
         Đang khởi động GPS...
     </div>
     """,
-    height=140
+    height=130
 )
 
 # Đọc tọa độ từ URL (sau khi JS reload)
